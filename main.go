@@ -19,15 +19,12 @@ import (
 )
 
 func main() {
-	/*
-		Listen to, and handle incoming ipc message :
-		- forward each incoming message to the web-browser
-		- send back each browser response as outgoing ipc message
+	if handled, out := handleFlags(os.Args[1:]); handled {
+		fmt.Println(out)
+		os.Exit(0)
+	}
 
-		It acts like a web-browser proxy
-	*/
 	if err := webBrowserProxy(); err != nil {
-		// write to stderr
 		log.Printf("Error in mozeidon_native_app: %v", err)
 	}
 }
