@@ -34,6 +34,17 @@ type IpcIncomingMessage struct {
 	Args    string `json:"args,omitempty"`
 }
 
+// isEndOfStream reports whether the browser sent the {"data":"end"} terminator.
+// Parses the decoded map instead of byte-comparing marshaled JSON, so key order
+// / whitespace can't break streaming.
+func isEndOfStream(response *host.H) bool {
+	if response == nil {
+		return false
+	}
+	d, ok := (*response)["data"]
+	return ok && d == "end"
+}
+
 func webBrowserProxy() error {
 	browserMessagingClient := (&host.Host{}).Init()
 
@@ -108,7 +119,10 @@ func webBrowserProxy() error {
 
 			// Parse incoming message
 			incomingMessage := IpcIncomingMessage{}
-			json.Unmarshal(message.Data, &incomingMessage)
+			if err := json.Unmarshal(message.Data, &incomingMessage); err != nil {
+				log.Printf("skipping malformed ipc message: %v", err)
+				continue
+			}
 
 			// Send incoming message to browser
 			request := &host.H{"payload": incomingMessage}
@@ -125,13 +139,15 @@ func webBrowserProxy() error {
 				}
 
 				// send back browser message to client
-				responseMessage, _ := json.Marshal(response)
-				err = ipcServer.Write(1, responseMessage)
+				responseMessage, err := json.Marshal(response)
 				if err != nil {
-					return fmt.Errorf("Error writing to ipc server: %w", err)
+					return fmt.Errorf("error marshaling browser response: %w", err)
+				}
+				if err := ipcServer.Write(1, responseMessage); err != nil {
+					return fmt.Errorf("error writing to ipc server: %w", err)
 				}
 				// end of browser response for the incoming message
-				if string(responseMessage) == `{"data":"end"}` {
+				if isEndOfStream(response) {
 					break
 				}
 			}
