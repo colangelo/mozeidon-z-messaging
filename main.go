@@ -104,7 +104,7 @@ func webBrowserProxy() error {
 	ipcConfig := &ipc.ServerConfig{
 
 		Encryption:        true, // allows encryption to be switched off (bool - default is true)
-		UnmaskPermissions: true, // make the socket writeable for other users (default is false)
+		UnmaskPermissions: false, // single-user: native-app and CLI run as the same user
 	}
 
 	ipcServer, err := ipc.StartServer(nativeAppProfile.IpcName, ipcConfig)
