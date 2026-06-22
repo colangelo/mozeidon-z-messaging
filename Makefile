@@ -1,4 +1,7 @@
-build-native-app:
-	go build
+build:
+	go build -o mozeidon-z-messaging .
 
-all: build-native-app
+test:
+	go test ./...
+
+all: build

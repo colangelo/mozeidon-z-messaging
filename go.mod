@@ -1,6 +1,6 @@
-module github.com/egovelox/mozeidon-native-app
+module github.com/colangelo/mozeidon-z-messaging
 
-go 1.21.1
+go 1.26
 
 require (
 	github.com/google/uuid v1.6.0

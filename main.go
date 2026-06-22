@@ -13,7 +13,7 @@ import (
 	"path/filepath"
 	"syscall"
 
-	"github.com/egovelox/mozeidon-native-app/models"
+	"github.com/colangelo/mozeidon-z-messaging/models"
 	"github.com/james-barrow/golang-ipc"
 	"github.com/rickypc/native-messaging-host"
 )
