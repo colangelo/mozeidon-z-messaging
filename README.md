@@ -6,9 +6,10 @@ commands and responses with the [Mozeidon-Z CLI](https://github.com/colangelo/mo
 local IPC socket.
 
 > Hard fork of [`egovelox/mozeidon-native-app`](https://github.com/egovelox/mozeidon-native-app).
-> The **binary** is renamed `mozeidon-z-messaging`; the native-messaging **host name** (`mozeidon`)
-> and the **IPC socket** (`mozeidon_native_app`) are unchanged, so it is a drop-in for the
-> Mozeidon-Z extension with no AMO change. See [ARCHITECTURE.md](ARCHITECTURE.md) for how it works.
+> The **binary** is renamed `mozeidon-z-messaging`. The **IPC socket** (`mozeidon_native_app`) is
+> unchanged — that's the native-app ↔ CLI contract. The native-messaging **host name** is
+> `mozeidon_z` (the extension's `connectNative` target + the manifest `"name"`; underscore, because
+> host names can't contain hyphens). See [ARCHITECTURE.md](ARCHITECTURE.md) for how it works.
 
 ## Install (macOS / Linux)
 
@@ -20,12 +21,12 @@ This is also pulled automatically as a dependency of `brew install colangelo/tap
 
 ## Configure native messaging (Firefox, macOS)
 
-Create `~/Library/Application Support/Mozilla/NativeMessagingHosts/mozeidon.json`:
+Create `~/Library/Application Support/Mozilla/NativeMessagingHosts/mozeidon_z.json`:
 
 ```json
 {
-  "name": "mozeidon",
-  "description": "Mozeidon native messaging host",
+  "name": "mozeidon_z",
+  "description": "Mozeidon-Z native messaging host",
   "path": "/opt/homebrew/bin/mozeidon-z-messaging",
   "type": "stdio",
   "allowed_extensions": ["mozeidon-z@a-layer.io"]
