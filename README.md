@@ -1,70 +1,62 @@
-# Mozeidon native-app
+# mozeidon-z-messaging
 
-The [mozeidon native-app](https://github.com/egovelox/mozeidon-native-app), a very simple ipc server written in ``go``, will allow the [mozeidon firefox-addon](https://addons.mozilla.org/en-US/firefox/addon/mozeidon) to receive commands from and send responses to the mozeidon CLI (for installing the CLI, see [mozeidon](https://github.com/egovelox/mozeidon)).
+The native-messaging host for the **Mozeidon-Z** stack — a tiny Go proxy that lets the
+[Mozeidon-Z browser extension](https://addons.mozilla.org/firefox/addon/mozeidon-z/) exchange
+commands and responses with the [Mozeidon-Z CLI](https://github.com/colangelo/mozeidon-z) over a
+local IPC socket.
 
+> Hard fork of [`egovelox/mozeidon-native-app`](https://github.com/egovelox/mozeidon-native-app).
+> The **binary** is renamed `mozeidon-z-messaging`; the native-messaging **host name** (`mozeidon`)
+> and the **IPC socket** (`mozeidon_native_app`) are unchanged, so it is a drop-in for the
+> Mozeidon-Z extension with no AMO change. See [ARCHITECTURE.md](ARCHITECTURE.md) for how it works.
 
-## Installation
+## Install (macOS / Linux)
 
-On MacOS or Linux, you can install it using ``homebrew`` :
 ```bash
-brew tap egovelox/homebrew-mozeidon ;
-
-brew install egovelox/mozeidon/mozeidon-native-app ;
+brew install colangelo/tap/mozeidon-z-messaging
 ```
 
-Otherwise, you may download the binary from the [release page](https://github.com/egovelox/mozeidon-native-app/releases).
+This is also pulled automatically as a dependency of `brew install colangelo/tap/mozeidon-z`.
 
-If no release matches your platform, you can build the binary yourself:
-```bash
-git clone https://github.com/egovelox/mozeidon-native-app.git ;
+## Configure native messaging (Firefox, macOS)
 
-cd mozeidon-native-app && go build
-```
-
-As a firefox native-app, it has to be referenced into your Firefox configuration.
-
-### Referencing the native-app into your Firefox configuration
-
-On ``MacOS``, first locate the ``~/Library/Application Support/Mozilla/NativeMessagingHosts`` directory (or create it if missing).
-
-Then create a ``mozeidon.json`` file, and copy into it the following ``json``.
-
-Note: depending on your installation, you may need to replace the value in ``"path"`` with the absolute path of the mozeidon-native-app.
+Create `~/Library/Application Support/Mozilla/NativeMessagingHosts/mozeidon.json`:
 
 ```json
 {
   "name": "mozeidon",
-  "description": "Native messaging add-on to interact with your browser",
-  "path": "/opt/homebrew/bin/mozeidon-native-app",
+  "description": "Mozeidon native messaging host",
+  "path": "/opt/homebrew/bin/mozeidon-z-messaging",
   "type": "stdio",
-  "allowed_extensions": [
-    "mozeidon-addon@egovelox.com"
-  ]
+  "allowed_extensions": ["mozeidon-z@a-layer.io"]
 }
 ```
 
-Now the Mozeidon firefox-addon will be able to interact with the Mozeidon native-app.
+(`just setup-native-messaging` in the `mozeidon-z` repo writes this for you.) Restart Firefox.
 
-Note : 
-For other OS than ``MacOS``, please check the [Mozilla documentation](https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/Native_manifests#manifest_location) to find the correct location of the Firefox ``NativeMessagingHosts`` directory.
+## Usage
 
-At last, you should be able to use the Mozeidon CLI or the Raycast extension.
+It is launched by the browser, not run directly. For diagnostics:
 
+```bash
+mozeidon-z-messaging --version
+mozeidon-z-messaging --help
+```
+
+## Build from source
+
+```bash
+go build -o mozeidon-z-messaging .   # needs Go 1.26+
+```
 
 ## Releases
 
-Various releases of the Mozeidon native-app can be found on the [releases page](https://github.com/egovelox/mozeidon-native-app/releases).
+A `v*` git tag triggers GitHub Actions (`.github/workflows/release.yml`) → a matrix build of
+`mozeidon-z-messaging-<os>-<arch>` for darwin + linux (amd64/arm64), cosign keyless signing, a public
+GitHub Release, and an `update-homebrew` job that bumps `Formula/mozeidon-z-messaging.rb` in
+`colangelo/homebrew-tap`. (Same pattern as the `mozeidon-z` CLI.)
 
-Releases are managed with github-actions and [goreleaser](https://github.com/goreleaser/goreleaser).
+## License
 
-A release will be auto-published when a new git tag is pushed,
-e.g :
-
-```bash
-git clone https://github.com/egovelox/mozeidon-native-app.git && cd mozeidon-native-app;
-
-git tag -a v2.0.0 -m "A new mozeidon-native-app release"
-
-git push origin v2.0.0
-```
+MIT. Originally based on `egovelox/mozeidon-native-app`.
 
