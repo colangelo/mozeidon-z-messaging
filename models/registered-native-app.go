@@ -40,18 +40,23 @@ type NativeAppProfile struct {
 	RegisteredAt        string `json:"registeredAt"`
 }
 
-func GetNativeAppProfile(response *RegistrationInfoResponse) *NativeAppProfile {
+func GetNativeAppProfile(response *RegistrationInfoResponse) (*NativeAppProfile, error) {
+	profileId := response.Data.ProfileId
+	if len(profileId) < 8 {
+		return nil, fmt.Errorf("invalid profileId %q: must be at least 8 characters", profileId)
+	}
+
 	instanceId := uuid.New().String()
 	pid := os.Getpid()
 
 	return &NativeAppProfile{
 		// e.g mozeidon_native_app_12345678_67891011
-		IpcName: fmt.Sprintf("mozeidon_native_app_%d_%s", pid, response.Data.ProfileId[:8]),
+		IpcName: fmt.Sprintf("mozeidon_native_app_%d_%s", pid, profileId[:8]),
 		// e.g 12345_67891011.json
 		FileName: fmt.Sprintf(
 			"%d_%s.json",
 			pid,
-			response.Data.ProfileId[:8],
+			profileId[:8],
 		),
 		BrowserName:         response.Data.BrowserName,
 		BrowserEngine:       response.Data.BrowserEngine,
@@ -65,5 +70,5 @@ func GetNativeAppProfile(response *RegistrationInfoResponse) *NativeAppProfile {
 		UserAgent:           response.Data.UserAgent,
 		Pid:                 pid,
 		RegisteredAt:        response.Data.RegisteredAt,
-	}
+	}, nil
 }

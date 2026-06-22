@@ -51,7 +51,10 @@ func webBrowserProxy() error {
 	if err := json.Unmarshal(response, &registrationData); err != nil {
 		return fmt.Errorf("error parsing registration message: %w", err)
 	}
-	nativeAppProfile = models.GetNativeAppProfile(&registrationData)
+	nativeAppProfile, err = models.GetNativeAppProfile(&registrationData)
+	if err != nil {
+		return fmt.Errorf("error building native-app profile: %w", err)
+	}
 
 	profileDataDir, err := models.GetProfileDirectory()
 	if err != nil {
