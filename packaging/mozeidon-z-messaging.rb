@@ -1,5 +1,5 @@
 class MozeidonZMessaging < Formula
-  desc "Mozeidon-Z native-messaging host — browser ⇄ CLI IPC bridge"
+  desc "Native-messaging host bridging the Mozeidon-Z browser extension and CLI"
   homepage "https://github.com/colangelo/mozeidon-z-messaging"
   version "VERSION_PLACEHOLDER"
   license "MIT"
@@ -27,6 +27,22 @@ class MozeidonZMessaging < Formula
   def install
     binary = Dir["mozeidon-z-messaging-*"].first || "mozeidon-z-messaging"
     bin.install binary => "mozeidon-z-messaging"
+  end
+
+  def caveats
+    <<~EOS
+      Firefox needs a native-messaging host manifest to launch this bridge.
+      Homebrew can't write outside its prefix, so install it once per macOS
+      user (the Mozeidon-Z toolbar popup shows "Disconnected" until you do):
+
+        mkdir -p ~/Library/Application\\ Support/Mozilla/NativeMessagingHosts
+        cat > ~/Library/Application\\ Support/Mozilla/NativeMessagingHosts/mozeidon_z.json <<'JSON'
+        {"name":"mozeidon_z","description":"Mozeidon-Z native messaging host","path":"#{opt_bin}/mozeidon-z-messaging","type":"stdio","allowed_extensions":["mozeidon-z@a-layer.io"]}
+        JSON
+
+      Then install the Mozeidon-Z add-on from addons.mozilla.org. No Firefox
+      restart is needed — the extension reconnects within ~1s.
+    EOS
   end
 
   test do
