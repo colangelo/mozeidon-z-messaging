@@ -48,6 +48,10 @@ func isEndOfStream(response *host.H) bool {
 func webBrowserProxy() error {
 	browserMessagingClient := (&host.Host{}).Init()
 
+	// Reclaim ipc sockets leaked by previous instances that were hard-killed
+	// (SIGKILL/crash) and so never ran their own shutdown cleanup.
+	sweepStaleSockets()
+
 	// Step 1. Register this running native-app profile into the ProfileDirectory
 	var nativeAppProfile *models.NativeAppProfile
 	firstMessage := &host.H{}
@@ -79,31 +83,10 @@ func webBrowserProxy() error {
 		return fmt.Errorf("error writing profile file: %w", err)
 	}
 
-	/*
-		On exits, unregister this running native-app profile from the ProfileDirectory
-		for exits triggered by the browser-extension, handle SIGTERM sent from browser-extension.
-		will not work for windows.
-		@see https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/Native_messaging#closing_the_native_app
-	*/
-	sigChan := make(chan os.Signal, 1)
-	signal.Notify(sigChan, syscall.SIGTERM, syscall.SIGINT)
-
-	go func() {
-		<-sigChan
-		os.Remove(jsonProfilePath)
-		os.Exit(0)
-	}()
-
-	/*
-		Also unregister the profile when the process ends
-		with an error
-	*/
-	defer os.Remove(jsonProfilePath)
-
 	// Step 2. Start IPC server
 	ipcConfig := &ipc.ServerConfig{
 
-		Encryption:        true, // allows encryption to be switched off (bool - default is true)
+		Encryption:        true,  // allows encryption to be switched off (bool - default is true)
 		UnmaskPermissions: false, // single-user: native-app and CLI run as the same user
 	}
 
@@ -111,6 +94,36 @@ func webBrowserProxy() error {
 	if err != nil {
 		return fmt.Errorf("Error starting %s ipc-server: %w", nativeAppProfile.IpcName, err)
 	}
+
+	/*
+		cleanup removes everything this instance created: the IPC unix socket and the
+		profile-registry file, so nothing is left behind. ipcServer.Close() unlinks
+		the socket via its listener; the explicit os.Remove is a belt-and-suspenders
+		in case a future golang-ipc stops unlinking. Idempotent.
+	*/
+	cleanup := func() {
+		ipcServer.Close()
+		os.Remove(socketPath(nativeAppProfile.IpcName))
+		os.Remove(jsonProfilePath)
+	}
+
+	/*
+		Clean up on exits triggered by the browser-extension: handle SIGTERM/SIGINT
+		sent from the browser-extension. Won't catch SIGKILL/Windows — those
+		leftovers are reclaimed by sweepStaleSockets() on the next startup.
+		@see https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/Native_messaging#closing_the_native_app
+	*/
+	sigChan := make(chan os.Signal, 1)
+	signal.Notify(sigChan, syscall.SIGTERM, syscall.SIGINT)
+	go func() {
+		<-sigChan
+		cleanup()
+		os.Exit(0)
+	}()
+
+	// Also clean up when the proxy returns with an error (e.g. the browser closed
+	// stdin, so the next read hits EOF).
+	defer cleanup()
 
 	// Listen to client, and handle incoming message
 	for {
